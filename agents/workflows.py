@@ -7,7 +7,7 @@ from google.genai.types import Content, Part
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from agents.base_runner import create_agent_session, run_agent_query, session_service
-from agents.sequential_agent.agent import router_agent, executable_units
+from agents.router_agent import router_agent, executable_units
 
 logger = logging.getLogger("ADK_Workflows")
 
@@ -50,11 +50,18 @@ async def route_and_execute(query: str) -> None:
         await run_agent_query(target, query, session)
 
 
-async def run_sequential_app() -> None:
+async def run_full_app() -> None:
+    """Тестує router_agent на запитах, що покривають усі патерни:
+    sequential (find_and_navigate), loop (iterative_planner), parallel (parallel_planner).
+    """
     queries = [
-        "I want to eat the best sushi in Palo Alto.",
-        "Are there any cool outdoor concerts this weekend?",
+        # Sequential: спершу знайти місце, потім прокласти маршрут
         "Find me the best sushi in Palo Alto and then tell me how to get there from the Caltrain station.",
+        # Loop: планування з обмеженням, яке треба перевіряти й ітеративно доопрацьовувати
+        "Plan me a day in San Francisco with a museum and a nice dinner, but make sure the travel time between them is very short.",
+        # Parallel: кілька незалежних завдань одночасно
+        "Help me plan a trip to SF. I need one museum, one concert, and one great restaurant.",
     ]
+
     for query in queries:
         await route_and_execute(query)

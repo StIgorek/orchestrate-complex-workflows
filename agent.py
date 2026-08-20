@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import sys
-from agents.workflows import route_and_execute, run_sequential_app
+from agents.workflows import route_and_execute, run_full_app
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.ERROR)
 async def main():
     if "--batch" in sys.argv:
         print("🚀 Запуск тестування масиву запитів (--batch)...")
-        await run_sequential_app()
+        await run_full_app()
         return
 
     print("\n🤖 ADK Sequential Workflow Ready.")

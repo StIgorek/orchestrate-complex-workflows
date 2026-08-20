@@ -1,63 +1,40 @@
 import sys
 from pathlib import Path
+
 from google.adk.agents import Agent
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from config.llm import DEFAULT_MODEL
-from tools.search import duckduckgo_search
-
-day_trip_agent = Agent(
-    name="day_trip_agent",
-    model=DEFAULT_MODEL,
-    description="Generates spontaneous full-day itineraries based on mood and budget.",
-    instruction="""
-    You are the Spontaneous Day Trip Generator 🚗.
-    Create full-day itineraries (morning, afternoon, evening) using real-time information.
-    Format your response in Markdown with clear time blocks.
-    """,
-    tools=[duckduckgo_search],
-)
-
-foodie_agent = Agent(
-    name="foodie_agent",
-    model=DEFAULT_MODEL,
-    tools=[duckduckgo_search],
-    instruction=" You are an expert food critic. Find the absolute best food experiences. State venue names clearly in bold, e.g., 'The best sushi is at **Jin Sho**.'",
-)
-
-weekend_guide_agent = Agent(
-    name="weekend_guide_agent",
-    model=DEFAULT_MODEL,
-    tools=[duckduckgo_search],
-    instruction="You are a local events guide. Find events, concerts, and activities for a specific weekend.",
-)
-
-transportation_agent = Agent(
-    name="transportation_agent",
-    model=DEFAULT_MODEL,
-    tools=[duckduckgo_search],
-    instruction="You are a navigation assistant. Provide precise directions between specified locations.",
-)
+from agents.sequential_agent.workers import day_trip_agent, foodie_agent
+from agents.sequential_agent.agent import find_and_navigate_workflow
+from agents.loop_agent.agent import iterative_planner_agent
+from agents.parallel_agent.agent import parallel_planner_agent
 
 router_agent = Agent(
     name="router_agent",
     model=DEFAULT_MODEL,
     instruction="""
-    Analyze the user's query and decide which worker agent or workflow to use.
-    Do not answer the query directly. Return ONLY one option name from:
-    - 'foodie_agent'
-    - 'weekend_guide_agent'
-    - 'day_trip_agent'
-    - 'find_and_navigate_combo'
+    You are a master request router. Your job is to analyze a user's query and decide which of the following agents or workflows is best suited to handle it.
+    Do not answer the query yourself, only return the name of the most appropriate choice.
 
-    Do not include quotes or extra text in your output.
+    Available Options:
+    - 'foodie_agent': For queries *only* about finding a single food place.
+    - 'find_and_navigate_agent': For queries that ask to *first find a place* and *then get directions* to it.
+    - 'iterative_planner_agent': For planning a trip with a specific constraint that needs checking, like travel time.
+    - 'parallel_planner_agent': For queries that ask to find multiple, independent things at once (e.g., a museum AND a concert AND a restaurant).
+    - 'day_trip_agent': A general planner for any other simple day trip requests.
+
+    Only return the single, most appropriate option's name and nothing else.
     """,
 )
 
-worker_agents = {
+# Словник усіх виконуваних одиниць — і звичайних Agent, і graph-based Workflow.
+# workflows.py сам розрізняє їх через isinstance(target, Workflow).
+executable_units = {
     "day_trip_agent": day_trip_agent,
     "foodie_agent": foodie_agent,
-    "weekend_guide_agent": weekend_guide_agent,
-    "transportation_agent": transportation_agent,
+    "find_and_navigate_agent": find_and_navigate_workflow,
+    "iterative_planner_agent": iterative_planner_agent,
+    "parallel_planner_agent": parallel_planner_agent,
 }
